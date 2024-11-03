@@ -3,7 +3,8 @@ import unittest
 from unittest.mock import patch, Mock
 from parameterized import parameterized
 from utils import access_nested_map, get_json, memoize
-
+from client import GithubOrgClient  # Import your GithubOrgClient
+from fixtures import repos_payload, expected_repos, apache2_repos  # Import fixture data
 
 class TestAccessNestedMap(unittest.TestCase):
     """Test suite for access_nested_map function in utils module."""
@@ -66,6 +67,42 @@ class TestMemoize(unittest.TestCase):
             self.assertEqual(test_instance.a_property, 42)
             self.assertEqual(test_instance.a_property, 42)
             mock_method.assert_called_once()
+
+
+class TestGithubOrgClient(unittest.TestCase):
+    """Test suite for GithubOrgClient."""
+
+    @patch('client.get_json')
+    @patch.object(GithubOrgClient, '_public_repos_url', new_callable=Mock)
+    def test_public_repos(self, mock_public_repos_url, mock_get_json):
+        """Test public_repos method returns expected repos list."""
+        # Arrange
+        mock_public_repos_url.return_value = "http://example.com/repos"
+        mock_get_json.return_value = repos_payload
+
+        # Act
+        client = GithubOrgClient("example_org")
+        result = client.public_repos()
+
+        # Assert
+        self.assertEqual(result, expected_repos)
+        mock_get_json.assert_called_once_with("http://example.com/repos")
+
+    @patch('client.get_json')
+    @patch.object(GithubOrgClient, '_public_repos_url', new_callable=Mock)
+    def test_public_repos_with_license(self, mock_public_repos_url, mock_get_json):
+        """Test public_repos method with license filter."""
+        # Arrange
+        mock_public_repos_url.return_value = "http://example.com/repos"
+        mock_get_json.return_value = repos_payload
+
+        # Act
+        client = GithubOrgClient("example_org")
+        result = client.public_repos(license="apache-2.0")
+
+        # Assert
+        self.assertEqual(result, apache2_repos)
+        mock_get_json.assert_called_once_with("http://example.com/repos")
 
 
 if __name__ == "__main__":
