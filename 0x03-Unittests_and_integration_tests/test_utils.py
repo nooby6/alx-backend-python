@@ -1,30 +1,31 @@
 #!/usr/bin/env python3
 import unittest
 from unittest.mock import patch
-from utils import memoize
+from parameterized import parameterized
+from client import GithubOrgClient
 
-class TestMemoize(unittest.TestCase):
-    """Tests for the memoize decorator in utils."""
+class TestGithubOrgClient(unittest.TestCase):
+    """Tests for the GithubOrgClient class."""
 
-    def test_memoize(self):
-        """Test that a_method is only called once when a_property is accessed multiple times."""
-        
-        class TestClass:
-            def a_method(self):
-                return 42
+    @parameterized.expand([
+        ("google", {"login": "google", "id": 1}),
+        ("abc", {"login": "abc", "id": 2}),
+    ])
+    @patch('client.get_json')
+    def test_org(self, org_name, expected_response, mock_get_json):
+        """Test that GithubOrgClient.org returns the correct organization data."""
+        # Set the mock to return the expected response
+        mock_get_json.return_value = expected_response
 
-            @memoize
-            def a_property(self):
-                return self.a_method()
+        # Initialize GithubOrgClient with org_name and get org data
+        client = GithubOrgClient(org_name)
+        result = client.org
 
-        with patch.object(TestClass, 'a_method', return_value=42) as mock_method:
-            # Instantiate TestClass and call a_property twice
-            test_instance = TestClass()
-            self.assertEqual(test_instance.a_property, 42)
-            self.assertEqual(test_instance.a_property, 42)
+        # Assert that get_json was called once with the correct URL
+        mock_get_json.assert_called_once_with(f"https://api.github.com/orgs/{org_name}")
 
-            # Verify that a_method was only called once
-            mock_method.assert_called_once()
+        # Verify that org returns the expected response
+        self.assertEqual(result, expected_response)
 
 if __name__ == "__main__":
     unittest.main()
